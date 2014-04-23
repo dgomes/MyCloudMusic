@@ -1,0 +1,20 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+    tools:context=".MainActivity">
+
+
+<EditText
+    android:id="@+id/verify"
+    android:inputType="number"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="16dp"
+    android:layout_marginLeft="4dp"
+    android:layout_marginRight="4dp"
+    android:layout_marginBottom="4dp"
+    android:hint="0000000" /> <!-- TODO convert to res -->
+
+</LinearLayout>
