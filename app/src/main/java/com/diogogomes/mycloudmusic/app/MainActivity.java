@@ -27,7 +27,7 @@ import org.scribe.oauth.OAuthService;
 
 
 public class MainActivity extends Activity
-        implements NavigationDrawerFragment.NavigationDrawerCallbacks, VerifyMeoCloud.VerifyDialogListener {
+        implements NavigationDrawerFragment.NavigationDrawerCallbacks, SettingsFragment.OnFragmentInteractionListener {
 
     public static final String PREFS_NAME = "MyCloudMusicSettings";
 
@@ -66,30 +66,22 @@ public class MainActivity extends Activity
         SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
         String accessToken = settings.getString("AccessToken", null);
 
-        if(accessToken == null) {
-
-            MeoCloudLogin newApp = (MeoCloudLogin) new MeoCloudLogin().execute("");
-
-            try {
-                requestToken = newApp.get();
-
-                Log.d(TAG, requestToken.getRawResponse());
-            } catch (Exception e) {
-                Log.e(TAG, e.getMessage());
-            }
-        } else {
-            Log.i(TAG, "recover accessToken?");
-            accessToken = null;
-        }
     }
 
     @Override
     public void onNavigationDrawerItemSelected(int position) {
         // update the main content by replacing fragments
         FragmentManager fragmentManager = getFragmentManager();
-        fragmentManager.beginTransaction()
-                .replace(R.id.container, PlaceholderFragment.newInstance(position + 1))
-                .commit();
+
+        if(position==2) {
+            fragmentManager.beginTransaction()
+                    .replace(R.id.container, SettingsFragment.newInstance("lixo"))
+                    .commit();
+        } else {
+            fragmentManager.beginTransaction()
+                    .replace(R.id.container, PlaceholderFragment.newInstance(position + 1))
+                    .commit();
+        }
     }
 
     public void onSectionAttached(int number) {
@@ -144,6 +136,11 @@ public class MainActivity extends Activity
         return super.onOptionsItemSelected(item);
     }
 
+    @Override
+    public void onFragmentInteraction(Uri uri) {
+        Log.e(TAG, "should do something about onFragmentInteration");
+    }
+
     /**
      * A placeholder fragment containing a simple view.
      */
@@ -186,84 +183,6 @@ public class MainActivity extends Activity
         }
 
 
-    }
-
-    private class MeoCloudGetAccessToken extends AsyncTask<String, Void, String> {
-
-        private static final String TAG = "MeoCloudGetAccessToken";
-
-        @Override
-        protected String doInBackground(String... params) {
-
-            Verifier v = new Verifier(params[0]);
-
-            Token access_token = service.getAccessToken(requestToken, v);
-
-            Log.d(TAG, access_token.getRawResponse());
-
-            return "done";
-        }
-
-        @Override
-        protected void onPostExecute(String result) {
-        }
-
-        @Override
-        protected void onPreExecute() {}
-
-        @Override
-        protected void onProgressUpdate(Void... values) {}
-    }
-
-
-    @Override
-    public void onFinishVerifyDialog(String inputText) {
-        Log.e(TAG, "onFinishVerifyDialog = "+inputText);
-        new MeoCloudGetAccessToken().execute(inputText);
-    }
-
-    private class MeoCloudLogin extends AsyncTask<String, Void, Token> {
-
-        private static final String TAG = "MeoCloudLogin";
-
-        @Override
-        protected Token doInBackground(String... params) {
-            service = new ServiceBuilder().debug()
-                    .provider(MeoCloudApi.class)
-                    .apiKey(getString(R.string.MeoCloudApiKey))
-                    .apiSecret(getString(R.string.MeoCloudApiSecret))
-                    .callback("oob")
-                    .build();
-
-            requestToken = service.getRequestToken();
-
-            Log.d(TAG, requestToken.getRawResponse());
-
-
-            return requestToken;
-        }
-
-        @Override
-        protected void onPostExecute(Token tok) {
-            String result = service.getAuthorizationUrl(tok);
-            Log.d(TAG, result);
-
-            final Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(result));
-
-            DialogFragment newFragment = VerifyMeoCloud.newInstance();
-            newFragment.show(getFragmentManager(), "dialog");
-
-            if (browserIntent.resolveActivity(getPackageManager()) != null) {
-                startActivity(browserIntent);
-            }
-
-        }
-
-        @Override
-        protected void onPreExecute() {}
-
-        @Override
-        protected void onProgressUpdate(Void... values) {}
     }
 
 

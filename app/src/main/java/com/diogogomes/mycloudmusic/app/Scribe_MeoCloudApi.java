@@ -8,7 +8,7 @@ import org.scribe.model.Verb;
  * Created by dgomes on 23/04/14.
  */
 
-public class MeoCloudApi extends DefaultApi10a {
+public class Scribe_MeoCloudApi extends DefaultApi10a {
 
     @Override
     public String getAccessTokenEndpoint()
