@@ -6,12 +6,17 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.ResultReceiver;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+
+import com.diogogomes.meocloud.AccountInfo;
+import com.diogogomes.meocloud.Scribe_MeoCloudApi;
 
 import org.scribe.builder.ServiceBuilder;
 import org.scribe.model.Token;
@@ -33,8 +38,7 @@ public class MeoCloudAuthorization extends Activity {
         setContentView(R.layout.activity_meo_cloud_authorization);
 
         // Get the message from the intent
-        Intent intent = getIntent();
-        Log.d(TAG, "got Intent!");
+        Log.d(TAG, "onCreate()");
 
         mOAuthService = new ServiceBuilder().debug()
                 .provider(Scribe_MeoCloudApi.class)
@@ -50,7 +54,23 @@ public class MeoCloudAuthorization extends Activity {
         mWebView.getSettings().setDisplayZoomControls(false);
         mWebView.setWebViewClient(mWebViewClient);
 
-        startAuthorize();
+        //startAuthorize();
+
+        Intent intent = new Intent(this, MeoCloudIntentService.class);
+        intent.setAction(MeoCloudIntentService.ACTION_GETAUTHOTIZATION);
+        intent.putExtra(MeoCloudIntentService.EXTRA_RESULT_RECEIVER, new ResultReceiver(new Handler()) {
+            @Override
+            protected void onReceiveResult(int resultCode, Bundle resultData) {
+                if(resultCode == MeoCloudIntentService.RESULT_OK && resultData.containsKey(MeoCloudIntentService.PARAM_AUTHURL)) {
+                    String url = resultData.getString(MeoCloudIntentService.PARAM_AUTHURL);
+                    mWebView.loadUrl(url);
+
+                    Log.d(TAG, "Open URL: "+ url);
+                }
+            }
+        });
+        startService(intent);
+
     }
 
     private void startAuthorize() {
@@ -98,24 +118,57 @@ public class MeoCloudAuthorization extends Activity {
                 mWebView.stopLoading();
                 mWebView.setVisibility(View.INVISIBLE); // Hide webview if necessary
                 Uri uri = Uri.parse(url);
-                final Verifier verifier = new Verifier(uri.getQueryParameter("oauth_verifier"));
-                (new AsyncTask<Void, Void, Token>() {
-                    @Override
-                    protected Token doInBackground(Void... params) {
-                        return mOAuthService.getAccessToken(mRequestToken, verifier);
-                    }
+                try {
 
-                    @Override
-                    protected void onPostExecute(Token accessToken) {
-                        // AccessToken is passed here! Do what you want!
-                        Log.d(TAG, accessToken.getRawResponse());
-                        Intent intent = new Intent(getApplicationContext(),  MainActivity.class);
-                        intent.putExtra("accessTokenSecret", accessToken.getSecret());
-                        intent.putExtra("accessToken", accessToken.getToken());
-                        setResult(RESULT_OK, intent);
-                        finish();
-                    }
-                }).execute();
+                    Intent intent = new Intent(getApplicationContext(), MeoCloudIntentService.class);
+                    intent.setAction(MeoCloudIntentService.ACTION_GETACCESSTOKEN);
+                    Bundle params = new Bundle();
+                    params.putString(MeoCloudIntentService.PARAM_VERIFIER, uri.getQueryParameter("oauth_verifier"));
+                    intent.putExtra(MeoCloudIntentService.EXTRA_PARAMS, params);
+                    intent.putExtra(MeoCloudIntentService.EXTRA_RESULT_RECEIVER, new ResultReceiver(new Handler()) {
+                        @Override
+                        protected void onReceiveResult(int resultCode, Bundle resultData) {
+                            if(resultCode == MeoCloudIntentService.RESULT_OK && resultData.containsKey(MeoCloudIntentService.PARAM_ACCESSTOKEN)) {
+                                String accessToken = resultData.getString(MeoCloudIntentService.PARAM_ACCESSTOKEN);
+                                String accessTokenSecret = resultData.getString(MeoCloudIntentService.PARAM_ACCESSTOKENSECRET);
+
+                                Intent intent = new Intent(getApplicationContext(),  MainActivity.class);
+                                intent.putExtra(getString(R.string.settings_accessTokenSecret), accessTokenSecret);
+                                intent.putExtra(getString(R.string.settings_accessToken), accessToken);
+                                setResult(RESULT_OK, intent);
+                                finish();
+
+                            }
+                        }
+                    });
+                    startService(intent);
+
+
+//                    final Verifier verifier = new Verifier(uri.getQueryParameter("oauth_verifier"));
+//
+//                    (new AsyncTask<Void, Void, Token>() {
+//                        @Override
+//                        protected Token doInBackground(Void... params) {
+//                            return
+//                        }
+//
+//                        @Override
+//                        protected void onPostExecute(Token accessToken) {
+//                            // AccessToken is passed here! Do what you want!
+//                            Log.d(TAG, accessToken.getRawResponse());
+//                            Intent intent = new Intent(getApplicationContext(),  MainActivity.class);
+//                            intent.putExtra(getString(R.string.settings_accessTokenSecret), accessToken.getSecret());
+//                            intent.putExtra(getString(R.string.settings_accessToken), accessToken.getToken());
+//                            setResult(RESULT_OK, intent);
+//                            finish();
+//                        }
+//                    }).execute();
+
+                } catch (IllegalArgumentException e ) {
+                    Intent intent = new Intent(getApplicationContext(),  MainActivity.class);
+                    setResult(RESULT_CANCELED, intent);
+                    finish();
+                }
             } else {
                 super.onPageStarted(view, url, favicon);
             }

@@ -1,4 +1,4 @@
-package com.diogogomes.mycloudmusic.app;
+package com.diogogomes.meocloud;
 
 import org.scribe.builder.api.DefaultApi10a;
 import org.scribe.model.Token;

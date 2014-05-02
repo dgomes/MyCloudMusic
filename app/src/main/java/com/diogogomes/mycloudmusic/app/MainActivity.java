@@ -3,14 +3,18 @@ package com.diogogomes.mycloudmusic.app;
 import android.app.Activity;
 
 import android.app.ActionBar;
-import android.app.DialogFragment;
 import android.app.Fragment;
 import android.app.FragmentManager;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -20,14 +24,12 @@ import android.view.ViewGroup;
 import android.support.v4.widget.DrawerLayout;
 import android.widget.TextView;
 
-import org.scribe.builder.ServiceBuilder;
 import org.scribe.model.Token;
-import org.scribe.model.Verifier;
 import org.scribe.oauth.OAuthService;
 
 
 public class MainActivity extends Activity
-        implements NavigationDrawerFragment.NavigationDrawerCallbacks, SettingsFragment.OnFragmentInteractionListener {
+        implements NavigationDrawerFragment.NavigationDrawerCallbacks, SettingsFragment.OnFragmentInteractionListener, MusicFragment.OnFragmentInteractionListener {
 
     public static final String PREFS_NAME = "MyCloudMusicSettings";
 
@@ -61,10 +63,27 @@ public class MainActivity extends Activity
         mNavigationDrawerFragment.setUp(
                 R.id.navigation_drawer,
                 (DrawerLayout) findViewById(R.id.drawer_layout));
+    }
 
-        // Read MeoCloud Credentials
-        SharedPreferences settings = getSharedPreferences(PREFS_NAME, 0);
-        String accessToken = settings.getString("AccessToken", null);
+    @Override
+    protected void onResume() {
+        super.onResume();
+    }
+    @Override
+    protected void onPause() {
+        super.onPause();
+    }
+
+    @Override
+    protected  void onStart() {
+        super.onStart();
+        Log.d(TAG, "onStart()");
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.d(TAG, "onStop()");
 
     }
 
@@ -75,12 +94,19 @@ public class MainActivity extends Activity
 
         if(position==2) {
             fragmentManager.beginTransaction()
-                    .replace(R.id.container, SettingsFragment.newInstance("lixo"))
+                    .replace(R.id.container, SettingsFragment.newInstance(position + 1))
                     .commit();
-        } else {
+        } else if(position == 0) {
+            fragmentManager.beginTransaction()
+                    .replace(R.id.container, MusicFragment.newInstance(position + 1))
+                    .commit();
+
+        }else {
+
             fragmentManager.beginTransaction()
                     .replace(R.id.container, PlaceholderFragment.newInstance(position + 1))
                     .commit();
+
         }
     }
 
@@ -137,8 +163,13 @@ public class MainActivity extends Activity
     }
 
     @Override
-    public void onFragmentInteraction(Uri uri) {
-        Log.e(TAG, "should do something about onFragmentInteration");
+    public void onSettingsFragmentInteraction(Uri uri) {
+        Log.e(TAG, "should do something about onSettingsFragmentInteraction");
+    }
+
+    @Override
+    public void onMusicFragmentInteraction(String id) {
+        Log.e(TAG, "should do something about onMusicFragmentInteraction");
     }
 
     /**

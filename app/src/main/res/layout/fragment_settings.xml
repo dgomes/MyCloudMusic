@@ -4,18 +4,55 @@
     android:layout_height="match_parent"
     tools:context="com.diogogomes.mycloudmusic.app.SettingsFragment">
 
-    <LinearLayout
-        android:orientation="vertical"
+    <TableLayout
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
-        android:layout_gravity="center">
+        >
 
-        <Button
+        <TableRow
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/button_meocloudauth"
-            android:id="@+id/meoCloudRequestAuthorization_button"
-            android:layout_gravity="center_horizontal"
-            />
-    </LinearLayout>
+            android:gravity="center_horizontal"
+            android:padding="5dip">
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/button_meocloudauth"
+                android:id="@+id/meoCloudRequestAuthorization_button"
+                android:layout_gravity="center_horizontal"
+
+                />
+        </TableRow>
+
+        <TableRow
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="5dip"
+            android:gravity="center_horizontal">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="@string/accountInfoLabel"
+                android:id="@+id/meoCloudAccountInfoLabel"
+                android:textStyle="bold" />
+
+        </TableRow>
+
+        <TableRow
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:padding="5dip"
+            android:gravity="center_horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="@string/accountInfo"
+                android:id="@+id/meoCloudAccountInfo"
+                android:layout_column="0" />
+        </TableRow>
+    </TableLayout>
 </FrameLayout>

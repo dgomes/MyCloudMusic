@@ -12,7 +12,7 @@ import java.util.Date;
  * Created by dgomes on 26/04/14.
  */
 
-public class AccountInfo implements Serializable {
+public class AccountInfo implements Serializable { //TODO Parceable!!!
     public class Quota implements Serializable {
         private long shared;
         private long quota;

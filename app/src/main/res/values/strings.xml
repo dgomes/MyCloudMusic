@@ -16,5 +16,9 @@
     <string name="MeoCloudApiKey">2953f601-f1f0-41a6-9b84-eee553a4e9ca</string>
     <string name="MeoCloudApiSecret">321041840368789075651210243684691872620</string>
     <string name="title_activity_meo_cloud_authorization">Connect to Meo Cloud</string>
+    <string name="settings_accessToken">accessToken</string>
+    <string name="settings_accessTokenSecret">accessTokenSecret</string>
+    <string name="accountInfo">not connected yet</string>
+    <string name="accountInfoLabel">Connected as:</string>
 
 </resources>

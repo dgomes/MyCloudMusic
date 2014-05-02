@@ -5,11 +5,16 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.app.Fragment;
+import android.os.Handler;
+import android.os.ResultReceiver;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.TextView;
+
+import com.diogogomes.meocloud.AccountInfo;
 
 
 /**
@@ -22,13 +27,14 @@ import android.widget.Button;
  *
  */
 public class SettingsFragment extends Fragment {
-    private static final String TAG = "SettingsFragment";
+    private static final String TAG = SettingsFragment.class.getSimpleName();
 
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
+    private static final int REQUEST_ACCESSTOKEN = 1001;
+
+    private static final String ARG_SectionNumber = "sectionNumber";
 
     // TODO: Rename and change types of parameters
-    private String mParam1;
+    private int mSectionNumber;
 
     private OnFragmentInteractionListener mListener;
 
@@ -36,45 +42,69 @@ public class SettingsFragment extends Fragment {
      * Use this factory method to create a new instance of
      * this fragment using the provided parameters.
      *
-     * @param param1 Parameter 1.
      * @return A new instance of fragment SettingsFragment.
      */
     // TODO: Rename and change types and number of parameters
-    public static SettingsFragment newInstance(String param1) {
+    public static SettingsFragment newInstance(int sectionNumber) {
         SettingsFragment fragment = new SettingsFragment();
         Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
+        args.putInt(ARG_SectionNumber, sectionNumber);
         fragment.setArguments(args);
         return fragment;
     }
+
     public SettingsFragment() {
-        // Required empty public constructor
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
+            mSectionNumber = getArguments().getInt(ARG_SectionNumber);
         }
+        setRetainInstance(true);
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        View rootview = inflater.inflate(R.layout.fragment_settings, container, false);
+        final View rootview = inflater.inflate(R.layout.fragment_settings, container, false);
 
-        Button mbutton = (Button) rootview.findViewById(R.id.meoCloudRequestAuthorization_button);
+        final Button mbutton = (Button) rootview.findViewById(R.id.meoCloudRequestAuthorization_button);
 
         mbutton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent(SettingsFragment.this.getActivity(), MeoCloudAuthorization.class);
-                startActivityForResult(intent, 69);
-                Log.d(TAG, "startActivity");
+                startActivityForResult(intent, REQUEST_ACCESSTOKEN);
+                Log.d(TAG, "startActivity MeoCloudAuthorization");
             }
         });
+
+        Intent intent = new Intent(getActivity(), MeoCloudIntentService.class);
+        intent.setAction(MeoCloudIntentService.ACTION_ACCOUNTINFO);
+        intent.putExtra(MeoCloudIntentService.EXTRA_RESULT_RECEIVER, new ResultReceiver(new Handler()) {
+            @Override
+            protected void onReceiveResult(int resultCode, Bundle resultData) {
+                if(resultCode == MeoCloudIntentService.RESULT_OK && resultData.containsKey(MeoCloudIntentService.PARAM_ACCOUNTINFO)) {
+                    Log.d(TAG, "Update GUI");
+                    AccountInfo info = (AccountInfo) resultData.getSerializable(MeoCloudIntentService.PARAM_ACCOUNTINFO);
+                    if(info == null) { // Request Again authorization
+                        Intent intent = new Intent(SettingsFragment.this.getActivity(), MeoCloudAuthorization.class);
+                        startActivityForResult(intent, REQUEST_ACCESSTOKEN);
+
+                    } else {
+                        Log.d(TAG, info.getDisplay_name());
+                        TextView mInfo = (TextView) rootview.findViewById(R.id.meoCloudAccountInfo);
+                        mInfo.setText(info.getDisplay_name());
+                        mbutton.setEnabled(false);
+                    }
+                }
+            }
+        });
+        getActivity().startService(intent);
+
 
         return rootview;
     }
@@ -82,20 +112,37 @@ public class SettingsFragment extends Fragment {
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (data.getExtras().containsKey("accessToken")) {
-            Log.d(TAG, "We got the look!");
-        }
+        Log.d(TAG, "requestCode = " + requestCode + " - resultCode = " + resultCode);
+        if(requestCode == REQUEST_ACCESSTOKEN)
+            if (resultCode == Activity.RESULT_OK) {
+                Log.d(TAG, "User has successfully authorized access to MeoCloud");
+
+                //send to MeoCloudIntentService
+                Intent msgIntent = new Intent(getActivity(), MeoCloudIntentService.class);
+                msgIntent.setAction(MeoCloudIntentService.ACTION_SETACCESSTOKEN);
+                Bundle params = new Bundle();
+                params.putString(MeoCloudIntentService.PARAM_ACCESSTOKEN, data.getExtras().getString("accessToken"));
+                params.putString(MeoCloudIntentService.PARAM_ACCESSTOKENSECRET, data.getExtras().getString("accessTokenSecret"));
+                msgIntent.putExtra(MeoCloudIntentService.EXTRA_PARAMS, params);
+                Log.d(TAG, params.toString());
+                getActivity().startService(msgIntent);
+            }
     }
+
     // TODO: Rename method, update argument and hook method into UI event
     public void onButtonPressed(Uri uri) {
         if (mListener != null) {
-            mListener.onFragmentInteraction(uri);
+            mListener.onSettingsFragmentInteraction(uri);
         }
     }
 
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
+
+        super.onAttach(activity);
+        ((MainActivity) activity).onSectionAttached(getArguments().getInt(ARG_SectionNumber));
+
         try {
             mListener = (OnFragmentInteractionListener) activity;
         } catch (ClassCastException e) {
@@ -122,9 +169,7 @@ public class SettingsFragment extends Fragment {
      */
     public interface OnFragmentInteractionListener {
         // TODO: Update argument type and name
-        public void onFragmentInteraction(Uri uri);
+        public void onSettingsFragmentInteraction(Uri uri);
     }
-
-
 
 }
