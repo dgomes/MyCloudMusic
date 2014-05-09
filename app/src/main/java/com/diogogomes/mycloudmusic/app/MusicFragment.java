@@ -16,6 +16,7 @@ import android.widget.TextView;
 
 
 import com.diogogomes.meocloud.AccountInfo;
+import com.diogogomes.meocloud.Media;
 import com.diogogomes.meocloud.Metadata;
 
 import java.util.ArrayList;
@@ -77,7 +78,8 @@ public class MusicFragment extends ListFragment {
                         Log.d(TAG, "Open SettingsFragment");
                         Intent intent = new Intent(getActivity(), SettingsFragment.class);
                         startActivity(intent);
-                    } else {
+                    } else { //TODO should be smarter and implement a cache
+                        myMusic.clear();
                         for(Metadata m : music) {
                             Log.d(TAG, m.getPath());
                             myMusic.addItem(new Music.MusicEntry(m.getSize(), m.getPath()));
@@ -124,11 +126,25 @@ public class MusicFragment extends ListFragment {
     public void onListItemClick(ListView l, View v, int position, long id) {
         super.onListItemClick(l, v, position, id);
 
-        if (null != mListener) {
-            // Notify the active callbacks interface (the activity, if the
-            // fragment is attached to one) that an item has been selected.
-            mListener.onMusicFragmentInteraction(Music.ITEMS.get(position).id);
-        }
+        Log.d(TAG, "PLAY: " + myMusic.getItem(position).content);
+        Intent intent = new Intent(getActivity(), MeoCloudIntentService.class);
+        intent.setAction(MeoCloudIntentService.ACTION_MEDIA);
+        Bundle params = new Bundle();
+        params.putString(MeoCloudIntentService.PARAM_PATH, myMusic.getItem(position).content);
+        intent.putExtra(MeoCloudIntentService.EXTRA_PARAMS, params);
+        intent.putExtra(MeoCloudIntentService.EXTRA_RESULT_RECEIVER, new ResultReceiver(new Handler()) {
+            @Override
+            protected void onReceiveResult(int resultCode, Bundle resultData) {
+                if(resultCode == MeoCloudIntentService.RESULT_OK && resultData.containsKey(MeoCloudIntentService.PARAM_MEDIA)) {
+                    Media m = (Media) resultData.getParcelable(MeoCloudIntentService.PARAM_MEDIA);
+                    Log.d(TAG, "streaming: "+ m.getUrl());
+                    if (null != mListener) {
+                        mListener.onMusicFragmentInteraction(m.getUrl());
+                    }
+                }
+            }
+        });
+        getActivity().startService(intent);
     }
 
     /**
@@ -143,7 +159,7 @@ public class MusicFragment extends ListFragment {
     */
     public interface OnFragmentInteractionListener {
         // TODO: Update argument type and name
-        public void onMusicFragmentInteraction(String id);
+        public void onMusicFragmentInteraction(String url);
     }
 
 }

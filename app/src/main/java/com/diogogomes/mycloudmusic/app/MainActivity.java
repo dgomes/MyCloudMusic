@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.app.ActionBar;
 import android.app.Fragment;
 import android.app.FragmentManager;
+import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -12,33 +13,43 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.ViewGroup;
 import android.support.v4.widget.DrawerLayout;
 import android.widget.TextView;
+import android.widget.MediaController;
+import android.widget.Toast;
 
-import org.scribe.model.Token;
-import org.scribe.oauth.OAuthService;
+import java.io.IOException;
 
 
 public class MainActivity extends Activity
-        implements NavigationDrawerFragment.NavigationDrawerCallbacks, SettingsFragment.OnFragmentInteractionListener, MusicFragment.OnFragmentInteractionListener {
+        implements NavigationDrawerFragment.NavigationDrawerCallbacks, SettingsFragment.OnFragmentInteractionListener, MusicFragment.OnFragmentInteractionListener,
+        MediaPlayer.OnPreparedListener, MediaPlayer.OnInfoListener, MediaPlayer.OnErrorListener, MediaPlayer.OnCompletionListener
+{
 
     public static final String PREFS_NAME = "MyCloudMusicSettings";
 
     private static final String TAG = "MainActivity";
 
-    private OAuthService service = null;
+    private boolean playPause;
+    private boolean intialStage = true;
+    private AudioPlayerControl aplayer = null;
+    private MediaController controller = null;
 
-    private Token requestToken = null;
-    private Token accessToken = null;
 
     /**
      * Fragment managing the behaviors, interactions and presentation of the navigation drawer.
@@ -63,15 +74,19 @@ public class MainActivity extends Activity
         mNavigationDrawerFragment.setUp(
                 R.id.navigation_drawer,
                 (DrawerLayout) findViewById(R.id.drawer_layout));
+
     }
 
     @Override
     protected void onResume() {
         super.onResume();
     }
+
     @Override
     protected void onPause() {
+        // TODO Auto-generated method stub
         super.onPause();
+        Log.d(TAG, "onPause()");
     }
 
     @Override
@@ -168,8 +183,71 @@ public class MainActivity extends Activity
     }
 
     @Override
-    public void onMusicFragmentInteraction(String id) {
+    public void onMusicFragmentInteraction(String music_url) {
         Log.e(TAG, "should do something about onMusicFragmentInteraction");
+
+        try {
+            if(aplayer == null) {
+                aplayer = new AudioPlayerControl(music_url, this);
+
+
+            } else {
+                controller.show();
+            }
+
+            // creating the controller here fails.  Have to do it once our onCreate has finished?
+            // do it in the onPrepared listener for the actual MediaPlayer
+        } catch (java.io.IOException e) {
+            Log.e(TAG, "CallPlayer onCreate failed while creating AudioPlayerControl", e);
+            Toast t = Toast.makeText(this, "CallPlayer received error attempting to create AudioPlayerControl: " + e, Toast.LENGTH_LONG);
+            t.show();
+            finish();
+        }
+    }
+
+    @Override
+    public void onCompletion(MediaPlayer mediaPlayer) {
+        controller.setEnabled(false);
+        aplayer.destroy();
+
+        aplayer = null;
+    }
+
+    @Override
+    public boolean onError(MediaPlayer mediaPlayer, int i, int i2) {
+        return false;
+    }
+
+    @Override
+    public boolean onInfo(MediaPlayer mediaPlayer, int i, int i2) {
+        return false;
+    }
+
+    @Override
+    public void onPrepared(MediaPlayer mediaPlayer) {
+        Log.i(TAG, "onPrepared about to construct MediaController object");
+        controller = new MediaController(this, true); // enable fast forward
+
+        View view = findViewById(R.id.drawer_layout);
+
+        controller.setMediaPlayer(aplayer);
+        controller.setAnchorView(view);
+        controller.setEnabled(true);
+        controller.show(0); //aplayer.getDuration());
+        if(!aplayer.isPlaying()) {
+            aplayer.start();
+        }
+
+        view.setOnTouchListener(new View.OnTouchListener() {
+            public boolean onTouch(View v, MotionEvent event) {
+                if(event.getAction() == MotionEvent.ACTION_MOVE){
+                    if(controller != null)
+                        if(!controller.isShowing())
+                            controller.show();
+                }
+                return true;
+            }
+        });
     }
 
     /**

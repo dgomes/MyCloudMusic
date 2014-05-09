@@ -13,6 +13,7 @@ import org.scribe.model.Verb;
 import org.scribe.model.Verifier;
 import org.scribe.oauth.OAuthService;
 
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,6 +29,8 @@ public class APIv1 {
     /* Requests */
     public static final String API_ACCOUNT_INFO = "Account/Info";
     public static final String API_SEARCH = "Search/meocloud/";
+    public static final String API_MEDIA = "Media/meocloud";
+
 
     public static final String TAG = "MeoCloud API";
 
@@ -126,6 +129,25 @@ public class APIv1 {
             return null;
         }
         return metadata;
+    }
+    public Media media(String path) {
+        String url = API_ENDPOINT + API_MEDIA + path.replace(" ", "%20");
+        Log.d(TAG, url);
+        OAuthRequest request = new OAuthRequest(Verb.POST, url);
+        mOAuthService.signRequest(mAccessToken, request);
+
+        Response resp = request.send();
+        Log.d(TAG, "Got it! Lets see what we got...");
+        Log.d(TAG, resp.getBody());
+
+        try {
+            JSONObject obj = new JSONObject(resp.getBody());
+            Media m = new Media(obj);
+            return m;
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
 }

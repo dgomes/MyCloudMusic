@@ -9,6 +9,7 @@ import android.util.Log;
 
 import com.diogogomes.meocloud.APIv1;
 import com.diogogomes.meocloud.AccountInfo;
+import com.diogogomes.meocloud.Media;
 import com.diogogomes.meocloud.Metadata;
 
 import org.scribe.model.Token;
@@ -38,6 +39,7 @@ public class MeoCloudIntentService extends IntentService {
     public static final String ACTION_ACCOUNTINFO = "com.diogogomes.meocloud.action.ACCOUNTINFO";
     public static final String ACTION_GETAUTHOTIZATION = "com.diogogomes.meocloud.action.GETAUTHORIZATION";
     public static final String ACTION_SEARCH = "com.diogogomes.meocloud.action.SEARCH";
+    public static final String ACTION_MEDIA = "com.diogogomes.meocloud.action.MEDIA";
 
     public static final String PARAM_VERIFIER = "com.diogogomes.meocloud.extra.VERIFIER";
     public static final String PARAM_ACCESSTOKEN = "com.diogogomes.meocloud.extra.ACCESSTOKEN";
@@ -45,6 +47,8 @@ public class MeoCloudIntentService extends IntentService {
     public static final String PARAM_ACCOUNTINFO = "com.diogogomes.meocloud.extra.ACCOUNTINFO";
     public static final String PARAM_AUTHURL = "com.diogogomes.meocloud.extra.AUTHURL";
     public static final String PARAM_METADATA = "com.diogogomes.meocloud.extra.METADATA";
+    public static final String PARAM_MEDIA = "com.diogogomes.meocloud.extra.MEDIA";
+    public static final String PARAM_PATH = "com.diogogomes.meocloud.extra.PATH";
 
     public static final int RESULT_OK = 200;
     public static final int RESULT_FAIL = 100;
@@ -91,6 +95,7 @@ public class MeoCloudIntentService extends IntentService {
                     b.putSerializable(PARAM_AUTHURL, url);
                     receiver.send(RESULT_OK, b);
                 } catch (NullPointerException e) {
+                    Log.e(TAG, e.getMessage());
                     receiver.send(RESULT_FAIL, null);
                 }
             } else if (ACTION_SEARCH.equals(action)) {
@@ -138,9 +143,21 @@ public class MeoCloudIntentService extends IntentService {
                     b.putSerializable(PARAM_ACCOUNTINFO, info);
                     receiver.send(RESULT_OK, b);
                 } catch (NullPointerException e) {
+                    Log.e(TAG, e.getMessage());
                     receiver.send(RESULT_FAIL, null);
                 }
-
+            } else if (ACTION_MEDIA.equals(action)) {
+                Log.d(TAG, "ACTION_MEDIA");
+                try {
+                    String path = params.getString(PARAM_PATH);
+                    Media url = api.media(path);
+                    Bundle b = new Bundle();
+                    b.putParcelable(PARAM_MEDIA, url);
+                    receiver.send(RESULT_OK, b);
+                } catch (NullPointerException e) {
+                    Log.e(TAG, e.getMessage());
+                    receiver.send(RESULT_FAIL, null);
+                }
             }
         }
     }

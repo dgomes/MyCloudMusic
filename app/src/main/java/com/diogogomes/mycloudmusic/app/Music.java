@@ -24,6 +24,15 @@ public class Music {
         ITEM_MAP.put(item.id, item);
     }
 
+    public MusicEntry getItem(int position) {
+        return ITEMS.get(position);
+    }
+
+    public static void clear() {
+        ITEMS.clear();
+        ITEM_MAP.clear();
+    }
+
     /**
      * A dummy item representing a piece of content.
      */
