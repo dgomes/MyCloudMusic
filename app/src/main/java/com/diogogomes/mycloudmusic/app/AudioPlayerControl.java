@@ -5,6 +5,9 @@ import android.media.MediaPlayer;
 import android.util.Log;
 import android.widget.MediaController;
 
+import com.diogogomes.meocloud.Media;
+
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,24 +19,33 @@ public class AudioPlayerControl implements MediaController.MediaPlayerControl {
     private static final String TAG = AudioPlayerControl.class.getSimpleName();
 
     private MediaPlayer player = null;
-    private String path = null;
+    private MusicArrayAdapter tracks;
+    private MusicFragment listenerActivity;
 
-    public AudioPlayerControl(String path, MusicFragment listenerActivity)
+    public AudioPlayerControl(MusicArrayAdapter tracks, MusicFragment listenerActivity)
             throws java.io.IOException
     {
-        Log.i(TAG, "AudioPlayerControl constructed with path " + path);
-        this.path = path;
+        this.tracks = tracks;
 
+        this.listenerActivity = listenerActivity;
+    }
+
+    public void loadTrack(int position) {
         player = new MediaPlayer();
-        player.setDataSource(path);
-
+        try {
+            player.setDataSource(this.tracks.getItem(position).getUrl());
+            Log.d(TAG, "setTrack " + this.tracks.getItem(position).getUrl());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         player.setOnPreparedListener(listenerActivity);
         player.setOnInfoListener(listenerActivity);
         player.setOnErrorListener(listenerActivity);
         player.setOnCompletionListener(listenerActivity);
-
         player.prepareAsync();
-
+    }
+    public void loadNextTrack(int position) {
+        loadTrack(position);
     }
 
     //
@@ -77,34 +89,30 @@ public class AudioPlayerControl implements MediaController.MediaPlayerControl {
     public void pause() {
         if(player == null) return;
 
-        Log.d(TAG, "AudioPlayerControl::pause");
+        Log.d(TAG, "pause()");
         player.pause();
     }
 
     public void seekTo(int pos) {
         if(player == null) return;
 
-        Log.d(TAG, "AudioPlayerControl::seekTo " + pos);
+        //Log.d(TAG, "seekTo()" + pos);
         player.seekTo(pos);
     }
 
     public void start() {
         if(player == null) return ;
 
-        Log.d(TAG, "AudioPlayerControl::start");
+        Log.d(TAG, "start()");
         player.start();
     }
 
     public void destroy() {
-        Log.i(TAG, "AudioPlayerControll::destroy shutting down player");
+        Log.i(TAG, "destroy() shutting down player");
         if (player != null) {
             player.reset();
             player.release();
             player = null;
         }
-    }
-
-    public String getPath() {
-        return this.path;
     }
 }

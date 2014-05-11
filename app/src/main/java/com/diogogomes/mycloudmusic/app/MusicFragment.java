@@ -42,7 +42,7 @@ public class MusicFragment extends ListFragment implements MediaPlayer.OnPrepare
     // TODO: Rename and change types of parameters
     private int mSectionNumber;
 
-    private static Music musicList = null;
+    private static MusicArrayAdapter musicList = null;
 
     private OnFragmentInteractionListener mListener;
 
@@ -88,10 +88,10 @@ public class MusicFragment extends ListFragment implements MediaPlayer.OnPrepare
                             Intent intent = new Intent(getActivity(), SettingsFragment.class);
                             startActivity(intent);
                         } else { //TODO should be smarter and implement a cache
-                            musicList = new Music(getActivity(), new ArrayList<Music.MusicEntry>());
+                            musicList = new MusicArrayAdapter(getActivity(), new ArrayList<MusicArrayAdapter.MusicEntry>());
                             for (Metadata m : music) {
                                 Log.d(TAG, m.getPath());
-                                musicList.add(new Music.MusicEntry(m.getSize(), m.getPath()));
+                                musicList.add(new MusicArrayAdapter.MusicEntry(m.getSize(), m.getPath()));
                             }
                             setListAdapter(musicList);
                         }
@@ -149,7 +149,8 @@ public class MusicFragment extends ListFragment implements MediaPlayer.OnPrepare
                 }
                 downloadToast = Toast.makeText(getActivity(), "Downloading track", Toast.LENGTH_LONG);
                 downloadToast.show();
-                audioPlayerControl = new AudioPlayerControl(musicList.getItem(position).getUrl(), this);
+                audioPlayerControl = new AudioPlayerControl(musicList, this);
+                audioPlayerControl.loadTrack(position);
             }
 
             // creating the controller here fails.  Have to do it once our onCreate has finished?
@@ -187,11 +188,13 @@ public class MusicFragment extends ListFragment implements MediaPlayer.OnPrepare
 
     @Override
     public void onCompletion(MediaPlayer mediaPlayer) {
-        controller.setEnabled(false);
+        if(controller != null) {
+            controller.setEnabled(false);
+            controller.hide();
+        }
         controller = null;
-        audioPlayerControl.destroy();
-
-        audioPlayerControl = null;
+        audioPlayerControl.loadNextTrack((currentPosition+1)%musicList.getCount());
+        currentPosition = (currentPosition+1)%musicList.getCount();
     }
 
     @Override

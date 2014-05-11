@@ -1,25 +1,19 @@
 package com.diogogomes.mycloudmusic.app;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.media.MediaMetadataRetriever;
-import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.ResultReceiver;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.MediaController;
 import android.widget.TextView;
 
 import com.diogogomes.meocloud.Media;
-
-import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,14 +21,14 @@ import java.util.HashMap;
 /**
  * Created by dgomes on 02/05/14.
  */
-public class Music extends ArrayAdapter<Music.MusicEntry> {
-    private static String TAG = Music.class.getSimpleName();
+public class MusicArrayAdapter extends ArrayAdapter<MusicArrayAdapter.MusicEntry> {
+    private static String TAG = MusicArrayAdapter.class.getSimpleName();
 
     private static class MusicHolder {
         TextView tvName;
     }
 
-    public Music(Context context, ArrayList<MusicEntry> users) {
+    public MusicArrayAdapter(Context context, ArrayList<MusicEntry> users) {
         super(context, R.layout.music_layout, users);
     }
 
@@ -58,7 +52,7 @@ public class Music extends ArrayAdapter<Music.MusicEntry> {
 
         if (music.isInfoLoaded()) {
             // Populate the data into the template view using the data object
-            musicHolder.tvName.setText(music.info);
+            musicHolder.tvName.setText(music.toString());
         } else {
             musicHolder.tvName.setText(R.string.musicEntryLoading);
             music.getInfo(getContext().getApplicationContext(), this);
@@ -77,6 +71,9 @@ public class Music extends ArrayAdapter<Music.MusicEntry> {
         public String info;
         private String path;
         private String url;
+
+        private String artist;
+        private String title;
         private boolean infoLoaded = false;
         private boolean infoRequested = false;
 
@@ -96,6 +93,11 @@ public class Music extends ArrayAdapter<Music.MusicEntry> {
             this.info = null;
 
             Log.d(TAG, path);
+        }
+
+        @Override
+        public String toString() {
+            return artist + " - " + title;
         }
 
         public void getInfo(Context activity, final ArrayAdapter<MusicEntry> adapter) {
@@ -120,16 +122,13 @@ public class Music extends ArrayAdapter<Music.MusicEntry> {
                         MediaMetadataRetriever mmr = new MediaMetadataRetriever();
                         try {
                             mmr.setDataSource(m.getUrl(), new HashMap<String, String>());
-                            String title = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
-                            String artist = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST);
+                            title = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
+                            artist = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST);
                             Log.i(TAG, artist + " - " + title);
-                            info = artist + " - " + title;
                             infoLoaded = true;
                             adapter.notifyDataSetChanged();
                         } catch (RuntimeException r) {
                             infoLoaded = false;
-                            info = "Failed to retrieve info";
-                            adapter.notifyDataSetChanged();
                         }
                     }
                 }
@@ -137,9 +136,5 @@ public class Music extends ArrayAdapter<Music.MusicEntry> {
             activity.startService(intent);
         }
 
-        @Override
-        public String toString() {
-            return info;
-        }
     }
 }
