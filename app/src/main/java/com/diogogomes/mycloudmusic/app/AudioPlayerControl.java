@@ -18,7 +18,7 @@ public class AudioPlayerControl implements MediaController.MediaPlayerControl {
     private MediaPlayer player = null;
     private String path = null;
 
-    public AudioPlayerControl(String path, MainActivity listenerActivity)
+    public AudioPlayerControl(String path, MusicFragment listenerActivity)
             throws java.io.IOException
     {
         Log.i(TAG, "AudioPlayerControl constructed with path " + path);
@@ -32,18 +32,8 @@ public class AudioPlayerControl implements MediaController.MediaPlayerControl {
         player.setOnErrorListener(listenerActivity);
         player.setOnCompletionListener(listenerActivity);
 
-        /*player.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                public void onCompletion(MediaPlayer mp) {
-                    Log.i(TAG, "AudioPlayerControl onCompletion called");
-                    player.reset();
-                }
-            });*/
         player.prepareAsync();
 
-        MediaMetadataRetriever mmr = new MediaMetadataRetriever();
-        mmr.setDataSource(path, new HashMap<String, String>());
-        String albumartist = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
-        Log.i(TAG, "Title = " + albumartist);
     }
 
     //
@@ -70,28 +60,37 @@ public class AudioPlayerControl implements MediaController.MediaPlayerControl {
     }
 
     public int getDuration() {
+        if(player == null) return -1;
         int duration = player.getDuration();
 //        Log.d(TAG, "AudioPlayerControl::getDuration returning " + duration);
         return duration;
     }
 
     public boolean isPlaying() {
+        if(player == null) return false;
+
         boolean isp = player.isPlaying();
 //        Log.d(TAG, "AudioPlayerControl::isPlaying returning " + isp);
         return isp;
     }
 
     public void pause() {
+        if(player == null) return;
+
         Log.d(TAG, "AudioPlayerControl::pause");
         player.pause();
     }
 
     public void seekTo(int pos) {
+        if(player == null) return;
+
         Log.d(TAG, "AudioPlayerControl::seekTo " + pos);
         player.seekTo(pos);
     }
 
     public void start() {
+        if(player == null) return ;
+
         Log.d(TAG, "AudioPlayerControl::start");
         player.start();
     }
@@ -103,5 +102,9 @@ public class AudioPlayerControl implements MediaController.MediaPlayerControl {
             player.release();
             player = null;
         }
+    }
+
+    public String getPath() {
+        return this.path;
     }
 }

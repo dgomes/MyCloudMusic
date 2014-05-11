@@ -111,6 +111,7 @@ public class APIv1 {
         Log.d(TAG, request.getCompleteUrl());
         mOAuthService.signRequest(mAccessToken, request);
 
+        //todo try catch request exceptions
         Response resp = request.send();
         Log.d(TAG, "Got it! Lets see what we found...");
         Log.d(TAG, resp.getBody());

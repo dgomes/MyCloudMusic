@@ -83,6 +83,7 @@ public class MeoCloudIntentService extends IntentService {
         Bundle params = extras.getBundle(EXTRA_PARAMS);
         ResultReceiver receiver = extras.getParcelable(EXTRA_RESULT_RECEIVER);
 
+
         if (intent != null) {
             final String action = intent.getAction();
             if (ACTION_GETAUTHOTIZATION.equals(action)) {

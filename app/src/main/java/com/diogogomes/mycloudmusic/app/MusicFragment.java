@@ -2,25 +2,25 @@ package com.diogogomes.mycloudmusic.app;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.app.ListFragment;
 import android.os.Handler;
 import android.os.ResultReceiver;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
 import android.widget.ListView;
-import android.widget.TextView;
+import android.widget.MediaController;
+import android.widget.Toast;
 
 
-import com.diogogomes.meocloud.AccountInfo;
 import com.diogogomes.meocloud.Media;
 import com.diogogomes.meocloud.Metadata;
 
 import java.util.ArrayList;
-import java.util.List;
 
 /**
  * A fragment representing a list of Items.
@@ -29,8 +29,11 @@ import java.util.List;
  * Activities containing this fragment MUST implement the {@link Callbacks}
  * interface.
  */
-public class MusicFragment extends ListFragment {
+public class MusicFragment extends ListFragment implements MediaPlayer.OnPreparedListener, MediaPlayer.OnInfoListener, MediaPlayer.OnErrorListener, MediaPlayer.OnCompletionListener {
     private static final String TAG = MusicFragment.class.getSimpleName();
+
+    private AudioPlayerControl audioPlayerControl = null;
+    private MediaController controller = null;
 
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -39,9 +42,13 @@ public class MusicFragment extends ListFragment {
     // TODO: Rename and change types of parameters
     private int mSectionNumber;
 
-    private Music myMusic = new Music();
+    private static Music musicList = null;
 
     private OnFragmentInteractionListener mListener;
+
+    private int currentPosition = -1;
+
+    private Toast downloadToast;
 
     // TODO: Rename and change types of parameters
     public static MusicFragment newInstance(int sectionNumber) {
@@ -66,31 +73,35 @@ public class MusicFragment extends ListFragment {
         if (getArguments() != null) {
             mSectionNumber = getArguments().getInt(ARG_SectionNumber);
         }
-        Intent intent = new Intent(getActivity(), MeoCloudIntentService.class);
-        intent.setAction(MeoCloudIntentService.ACTION_SEARCH);
-        intent.putExtra(MeoCloudIntentService.EXTRA_RESULT_RECEIVER, new ResultReceiver(new Handler()) {
-            @Override
-            protected void onReceiveResult(int resultCode, Bundle resultData) {
-                if(resultCode == MeoCloudIntentService.RESULT_OK && resultData.containsKey(MeoCloudIntentService.PARAM_METADATA)) {
-                    Log.d(TAG, "Update GUI Music");
-                    ArrayList<Metadata> music = resultData.getParcelableArrayList(MeoCloudIntentService.PARAM_METADATA);
-                    if(music == null) { // Request Again authorization
-                        Log.d(TAG, "Open SettingsFragment");
-                        Intent intent = new Intent(getActivity(), SettingsFragment.class);
-                        startActivity(intent);
-                    } else { //TODO should be smarter and implement a cache
-                        myMusic.clear();
-                        for(Metadata m : music) {
-                            Log.d(TAG, m.getPath());
-                            myMusic.addItem(new Music.MusicEntry(m.getSize(), m.getPath()));
+
+        if(musicList == null) {
+            Intent intent = new Intent(getActivity(), MeoCloudIntentService.class);
+            intent.setAction(MeoCloudIntentService.ACTION_SEARCH);
+            intent.putExtra(MeoCloudIntentService.EXTRA_RESULT_RECEIVER, new ResultReceiver(new Handler()) {
+                @Override
+                protected void onReceiveResult(int resultCode, Bundle resultData) {
+                    if (resultCode == MeoCloudIntentService.RESULT_OK && resultData.containsKey(MeoCloudIntentService.PARAM_METADATA)) {
+                        Log.d(TAG, "Update GUI Music");
+                        ArrayList<Metadata> music = resultData.getParcelableArrayList(MeoCloudIntentService.PARAM_METADATA);
+                        if (music == null) { // Request Again authorization
+                            Log.d(TAG, "Open SettingsFragment");
+                            Intent intent = new Intent(getActivity(), SettingsFragment.class);
+                            startActivity(intent);
+                        } else { //TODO should be smarter and implement a cache
+                            musicList = new Music(getActivity(), new ArrayList<Music.MusicEntry>());
+                            for (Metadata m : music) {
+                                Log.d(TAG, m.getPath());
+                                musicList.add(new Music.MusicEntry(m.getSize(), m.getPath()));
+                            }
+                            setListAdapter(musicList);
                         }
-                        setListAdapter(new ArrayAdapter<Music.MusicEntry>(getActivity(),
-                                R.layout.music_layout, R.id.label, myMusic.ITEMS));
                     }
                 }
-            }
-        });
-        getActivity().startService(intent);
+            });
+            getActivity().startService(intent);
+        } else {
+            setListAdapter(musicList);
+        }
     }
 
 
@@ -126,11 +137,38 @@ public class MusicFragment extends ListFragment {
     public void onListItemClick(ListView l, View v, int position, long id) {
         super.onListItemClick(l, v, position, id);
 
-        Log.d(TAG, "PLAY: " + myMusic.getItem(position).content);
+        try {
+            if(audioPlayerControl == null || position != currentPosition) {
+                if(audioPlayerControl != null) {
+                    Log.d(TAG, "Stop previous AudioController");
+                    controller.hide();
+                    audioPlayerControl.destroy();
+                    audioPlayerControl = null;
+                    controller.setEnabled(false);
+                    controller = null;
+                }
+                downloadToast = Toast.makeText(getActivity(), "Downloading track", Toast.LENGTH_LONG);
+                downloadToast.show();
+                audioPlayerControl = new AudioPlayerControl(musicList.getItem(position).getUrl(), this);
+            }
+
+            // creating the controller here fails.  Have to do it once our onCreate has finished?
+            // do it in the onPrepared listener for the actual MediaPlayer
+        } catch (java.io.IOException e) {
+            Log.e(TAG, "CallPlayer onCreate failed while creating AudioPlayerControl", e);
+            Toast et = Toast.makeText(getActivity(), "CallPlayer received error attempting to create AudioPlayerControl: " + e, Toast.LENGTH_LONG);
+            et.show();
+            getActivity().finish();
+        }
+
+
+
+        currentPosition = position;
+        Log.d(TAG, "PLAY: " + musicList.getItem(position).info);
         Intent intent = new Intent(getActivity(), MeoCloudIntentService.class);
         intent.setAction(MeoCloudIntentService.ACTION_MEDIA);
         Bundle params = new Bundle();
-        params.putString(MeoCloudIntentService.PARAM_PATH, myMusic.getItem(position).content);
+        params.putString(MeoCloudIntentService.PARAM_PATH, musicList.getItem(position).getPath());
         intent.putExtra(MeoCloudIntentService.EXTRA_PARAMS, params);
         intent.putExtra(MeoCloudIntentService.EXTRA_RESULT_RECEIVER, new ResultReceiver(new Handler()) {
             @Override
@@ -147,16 +185,58 @@ public class MusicFragment extends ListFragment {
         getActivity().startService(intent);
     }
 
-    /**
-    * This interface must be implemented by activities that contain this
-    * fragment to allow an interaction in this fragment to be communicated
-    * to the activity and potentially other fragments contained in that
-    * activity.
-    * <p>
-    * See the Android Training lesson <a href=
-    * "http://developer.android.com/training/basics/fragments/communicating.html"
-    * >Communicating with Other Fragments</a> for more information.
-    */
+    @Override
+    public void onCompletion(MediaPlayer mediaPlayer) {
+        controller.setEnabled(false);
+        controller = null;
+        audioPlayerControl.destroy();
+
+        audioPlayerControl = null;
+    }
+
+    @Override
+    public boolean onError(MediaPlayer mediaPlayer, int i, int i2) {
+        Log.i(TAG, "onError");
+        return false;
+    }
+
+    @Override
+    public boolean onInfo(MediaPlayer mediaPlayer, int i, int i2) {
+        Log.i(TAG, "onInfo");
+        return false;
+    }
+
+    @Override
+    public void onPrepared(MediaPlayer mediaPlayer) {
+        Log.i(TAG, "onPrepared about to construct MediaController object");
+
+        if(!audioPlayerControl.isPlaying()) {
+            audioPlayerControl.start();
+        }
+
+        downloadToast.cancel();
+
+        controller = new MediaController(getActivity(), true); // enable fast forward
+
+        View view = getActivity().findViewById(R.id.drawer_layout);
+
+        controller.setMediaPlayer(audioPlayerControl);
+        controller.setAnchorView(view);
+        controller.setEnabled(true);
+        controller.show(0); //audioPlayerControl.getDuration());
+
+        view.setOnTouchListener(new View.OnTouchListener() {
+            public boolean onTouch(View v, MotionEvent event) {
+                if(event.getAction() == MotionEvent.ACTION_MOVE){
+                    if(controller != null)
+                        if(!controller.isShowing())
+                            controller.show();
+                }
+                return true;
+            }
+        });
+    }
+
     public interface OnFragmentInteractionListener {
         // TODO: Update argument type and name
         public void onMusicFragmentInteraction(String url);

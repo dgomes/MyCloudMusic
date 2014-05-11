@@ -20,5 +20,6 @@
     <string name="settings_accessTokenSecret">accessTokenSecret</string>
     <string name="accountInfo">not connected yet</string>
     <string name="accountInfoLabel">Connected as:</string>
+    <string name="musicEntryLoading">Loading...</string>
 
 </resources>
